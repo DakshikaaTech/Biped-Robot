@@ -3,7 +3,7 @@ from libs.ACB_Biped_Robot import *
 Left_thigh = 5     
 Left_calf = 16   
 Right_thigh = 18  
-Right_calf = 17
+Right_calf = 19
 
 # Initialize the Biped robot with the specified pins
 servo_init(Left_thigh, Left_calf, Right_thigh, Right_calf)
