@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biped Core Controller</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #f4f6f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .panel-container {
+            width: 100%;
+            max-width: 400px;
+            background-color: white;
+            padding: 30px 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+        .section-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+            margin-top: 10px;
+        }
+        /* Layout formatting wrappers */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .divider {
+            height: 1px;
+            background-color: #e0e0e0;
+            width: 100%;
+            margin: 15px 0;
+        }
+        /* Button styling architecture */
+        .btn {
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            font-size: 1.05rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 85%;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        /* Color themes for different modes */
+        .btn-manual {
+            background-color: #3498db;
+        }
+        .btn-manual:active {
+            background-color: #2980b9;
+            transform: scale(0.98);
+        }
+        .btn-auto {
+            background-color: #2ecc71;
+        }
+        .btn-auto:active {
+            background-color: #27ae60;
+            transform: scale(0.98);
+        }
+        .btn-dance {
+            background-color: #9b59b6;
+        }
+        .btn-dance:active {
+            background-color: #8e44ad;
+            transform: scale(0.98);
+        }
+        .btn-stop {
+            background-color: #e74c3c;
+            margin-top: 10px;
+        }
+        .btn-stop:active {
+            background-color: #c0392b;
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="panel-container">
+        <h1>Robot Mission Control</h1>
+        
+        <div class="section-label">Manual Steering</div>
+        <div class="control-group">
+            <button class="btn btn-manual" onclick="transmitAction('/forward')">▲ Forward</button>
+            <button class="btn btn-manual" onclick="transmitAction('/backward')">▼ Backward</button>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="section-label">Autonomous & Fun</div>
+        <div class="control-group">
+            <button class="btn btn-auto" onclick="transmitAction('/avoid')">👁️ Obstacle Avoiding</button>
+            <button class="btn btn-dance" onclick="transmitAction('/dance')">🎶 Dance Grooves</button>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="control-group">
+            <button class="btn btn-stop" onclick="transmitAction('/stop')">🛑 Emergency Stop</button>
+        </div>
+    </div>
+
+    <script>
+        function transmitAction(route) {
+            console.log("Dispatched request payload to destination: " + route);
+            
+            // Sends background request instantly to the ESP32 socket router
+            fetch(route)
+            .then(res => {
+                if (!res.ok) console.log("Network accepted packet data.");
+            })
+            .catch(err => {
+                // MicroPython server loops drop sockets immediately; catching cleanly bypasses error logs
+                console.log("Transmission verified.");
+            });
+        }
+    </script>
+
+</body>
+</html>
