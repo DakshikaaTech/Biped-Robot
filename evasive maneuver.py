@@ -42,37 +42,31 @@ try:
         distance = get_distance()
         print("Distance:", round(distance, 1), "cm")
         
-        # Check for obstacles using your active sensor logic
-        if distance < 15.0:
-            print("⚠️ Obstacle Close! Executing evasive maneuver...")
+        # Check if obstacle is closer than 20cm
+        if distance < 20.0:
+            print("🛑 Obstacle detected! Stopping robot.")
             stand_straight()
-            time.sleep(0.2)
-            
-            # Escape sequence: Back up 1 step
-            set_angle(pwm_lc, 80); set_angle(pwm_rc, 80); time.sleep(0.2)
-            set_angle(pwm_rt, 75); set_angle(pwm_lt, 75); time.sleep(0.3)
-            
-            # Pivot turn Left away from the barrier
-            set_angle(pwm_lt, 75); set_angle(pwm_rt, 105); time.sleep(0.3)
-            stand_straight()
-            time.sleep(0.2)
+            # Do nothing else here - this effectively stops the robot
+            time.sleep(0.5) 
             
         else:
             # --- NON-BLOCKING FORWARD WALK ---
             if step_phase == 1:
-                set_angle(pwm_lc, 80); set_angle(pwm_rc, 80)   # Shift Left
+                set_angle(pwm_lc, 80); set_angle(pwm_rc, 80)
                 step_phase = 2
             elif step_phase == 2:
-                set_angle(pwm_rt, 105); set_angle(pwm_lt, 105) # Swing Right Foot
+                set_angle(pwm_rt, 105); set_angle(pwm_lt, 105)
                 step_phase = 3
             elif step_phase == 3:
-                set_angle(pwm_lc, 100); set_angle(pwm_rc, 100) # Shift Right
+                set_angle(pwm_lc, 100); set_angle(pwm_rc, 100)
                 step_phase = 4
             elif step_phase == 4:
-                set_angle(pwm_lt, 75); set_angle(pwm_rt, 75)   # Swing Left Foot
+                set_angle(pwm_lt, 75); set_angle(pwm_rt, 75)
                 step_phase = 1
                 
             time.sleep(0.3)
+    
+           
 
 except KeyboardInterrupt:
     stand_straight()
