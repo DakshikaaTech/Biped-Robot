@@ -5,7 +5,7 @@ import time
 pin_lt = Pin(5, Pin.OUT) # Left Thigh
 pin_lc = Pin(16, Pin.OUT) # Left Calf/Ankle
 pin_rt = Pin(18, Pin.OUT) # Right Thigh
-pin_rc = Pin(17, Pin.OUT) # Right Calf/Ankle
+pin_rc = Pin(19, Pin.OUT) # Right Calf/Ankle
 
 # 2. Initialize PWM streams at standard servo frequency (50Hz)
 pwm_lt = PWM(pin_lt, freq=50)
