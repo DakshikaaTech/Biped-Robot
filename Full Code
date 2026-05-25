@@ -3,18 +3,17 @@ from machine import Pin, PWM, time_pulse_us
 import time
 import network
 
+# --- AP SETUP ---
 ap = network.WLAN(network.AP_IF)
 ap.active(True)
 ap.config(essid="Biped-Robot", password="password123")
 print("AP Created. Connect to: Biped-Robot")
 
 # --- 1. SERVO & HARDWARE CONFIGURATION ---
-pwm_lt = PWM(Pin(5, Pin.OUT), freq=50) # Left Thigh
-pwm_lc = PWM(Pin(16, Pin.OUT), freq=50) # Left Calf/Ankle
-pwm_rt = PWM(Pin(18, Pin.OUT), freq=50) # Right Thigh
-pwm_rc = PWM(Pin(19, Pin.OUT), freq=50) # Right Calf/Ankle
-
-# Ultrasonic Pin Configuration
+pwm_lt = PWM(Pin(5, Pin.OUT), freq=50)
+pwm_lc = PWM(Pin(16, Pin.OUT), freq=50)
+pwm_rt = PWM(Pin(18, Pin.OUT), freq=50)
+pwm_rc = PWM(Pin(23, Pin.OUT), freq=50)
 trig = Pin(13, Pin.OUT)
 echo = Pin(14, Pin.IN)
 
@@ -27,206 +26,83 @@ def stand_straight():
     set_angle(pwm_rt, 90); set_angle(pwm_rc, 90)
 
 def get_distance():
+    trig.value(0); time.sleep_us(5)
+    trig.value(1); time.sleep_us(10)
     trig.value(0)
-    time.sleep_us(5)
-    trig.value(1)
-    time.sleep_us(10)
-    trig.value(0)
-    
     duration = time_pulse_us(echo, 1, 30000)
-    if duration < 0: 
-        return 999 
+    if duration < 0: return 999
     return (duration * 0.0343) / 2
 
-print("🚀 Running Autonomous Code (No Head Servo)!")
-stand_straight()
-time.sleep(2.0)
-
-step_phase = 1
-
-
-while True:
-    distance = get_distance()
-        
-        # Check if obstacle is closer than 20cm
-    if distance < 20.0:
-        print("🛑 Obstacle at", round(distance, 1), "cm! Performing pivot.")
-            # Emergency stop
-        stand_straight()
-            
-            # --- BLIND PIVOT MANEUVER ---
-            # You can replace this with your preferred turn-away sequence
-        set_angle(pwm_lc, 70); set_angle(pwm_rc, 110)
-        time.sleep(0.5)
-        stand_straight()
-            
-    else:
-            # --- NON-BLOCKING FORWARD WALK ---
-        if step_phase == 1:
-            set_angle(pwm_lc, 80); set_angle(pwm_rc, 80)
-            step_phase = 2
-        elif step_phase == 2:
-            set_angle(pwm_rt, 105); set_angle(pwm_lt, 105)
-            step_phase = 3
-        elif step_phase == 3:
-            set_angle(pwm_lc, 100); set_angle(pwm_rc, 100)
-            step_phase = 4
-        elif step_phase == 4:
-            set_angle(pwm_lt, 75); set_angle(pwm_rt, 75)
-            step_phase = 1
-                
-        time.sleep(0.3)
-
-# --- 2. INTEGRATED USER INTERFACE CODE ---
-html_page= """
+# --- 2. HTML INTERFACE ---
+html_page = """
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biped Core Controller</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            background-color: #f4f6f9;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .panel-container {
-            width: 100%;
-            max-width: 400px;
-            background-color: white;
-            padding: 30px 20px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-            text-align: center;
-        }
-        h1 { color: #2c3e50; font-size: 1.8rem; margin-bottom: 25px; font-weight: 600; }
-        .section-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #7f8c8d; margin-bottom: 15px; margin-top: 10px; }
-        .control-group { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 25px; }
-        .divider { height: 1px; background-color: #e0e0e0; width: 100%; margin: 15px 0; }
-        .btn {
-            color: white; border: none; padding: 15px 25px; font-size: 1.05rem; font-weight: bold;
-            border-radius: 12px; cursor: pointer; width: 85%; transition: all 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .btn-manual { background-color: #3498db; }
-        .btn-manual:active { background-color: #2980b9; transform: scale(0.98); }
-        .btn-auto { background-color: #2ecc71; }
-        .btn-auto:active { background-color: #27ae60; transform: scale(0.98); }
-        .btn-dance { background-color: #9b59b6; }
-        .btn-dance:active { background-color: #8e44ad; transform: scale(0.98); }
-        .btn-stop { background-color: #e74c3c; margin-top: 10px; }
-        .btn-stop:active { background-color: #c0392b; transform: scale(0.98); }
-    </style>
+<html>
+<head><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body { font-family: sans-serif; text-align: center; background: #f4f4f4; padding: 20px; }
+    .btn { display: block; width: 90%; margin: 10px auto; padding: 20px; font-size: 18px; border-radius: 10px; border: none; color: white; }
+</style>
 </head>
 <body>
-    <div class="panel-container">
-        <h1>Robot Mission Control</h1>
-        <div class="section-label">Manual Steering</div>
-        <div class="control-group">
-            <button class="btn btn-manual" onclick="transmitAction('/forward')">▲ Forward</button>
-            <button class="btn btn-manual" onclick="transmitAction('/backward')">▼ Backward</button>
-        </div>
-        <div class="divider"></div>
-        <div class="section-label">Autonomous & Fun</div>
-        <div class="control-group">
-            <button class="btn btn-auto" onclick="transmitAction('/avoid')">👁️ Obstacle Avoiding</button>
-            <button class="btn btn-dance" onclick="transmitAction('/dance')">🎶 Dance Grooves</button>
-        </div>
-        <div class="divider"></div>
-        <div class="control-group">
-            <button class="btn btn-stop" onclick="transmitAction('/stop')">🛑 Emergency Stop</button>
-        </div>
-    </div>
-    <script>
-        function transmitAction(route) {
-            console.log("Sending packet payload: " + route);
-            fetch(route).catch(err => console.log("Transmission sent."));
-        }
-    </script>
+    <h1>Biped Controller</h1>
+    <button class="btn" style="background:#3498db" onclick="fetch('/forward')">Forward</button>
+    <button class="btn" style="background:#2ecc71" onclick="fetch('/auto')">Auto-Walk (w/ Obstacle)</button>
+    <button class="btn" style="background:#3498db" onclick="fetch('/backward')">Backward</button>
+    <button class="btn" style="background:#9b59b6" onclick="fetch('/dance')">Dance</button>
+    <button class="btn" style="background:#e74c3c" onclick="fetch('/stop')">Stop</button>
 </body>
 </html>
 """
 
-# --- 3. SOCKET SERVER INITIATION ---
+# --- 3. SERVER & LOGIC ---
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-# Add this line to allow the port to be reused immediately:
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
 s.bind(('', 80))
 s.listen(5)
-stand_straight()
-print(" Biped Web Control Server online! Open the ESP32 IP in your browser.")
+s.settimeout(0.1)
 
-# --- 4. ENGINE ROUTING CORE ---
+stand_straight()
+step_phase = 0 # 0=Idle, 1-4=Walking
+print("Server Online!")
+
 while True:
+    # 1. Handle Web Commands
     try:
         client, addr = s.accept()
         request = client.recv(1024).decode('utf-8')
-        
-        # Read the URL endpoint from the header request
-        first_line = request.split('\r\n')[0]
-        endpoint = first_line.split(' ')[1] if len(first_line.split(' ')) > 1 else ""
+        endpoint = request.split(' ')[1] if len(request.split(' ')) > 1 else ""
         
         if "/forward" in endpoint:
-            print("🚀 Action: Forward Step")
-            set_angle(pwm_lc, 80); set_angle(pwm_rc, 80); time.sleep(0.15)
-            set_angle(pwm_rt, 105); set_angle(pwm_lt, 105); time.sleep(0.2)
-            set_angle(pwm_lc, 100); set_angle(pwm_rc, 100); time.sleep(0.15)
-            set_angle(pwm_lt, 75); set_angle(pwm_rt, 75); time.sleep(0.2)
-            
+            # Manual forward walk
+            set_angle(pwm_lc, 70); set_angle(pwm_rc, 70); time.sleep(0.2)
+            set_angle(pwm_rt, 115); set_angle(pwm_lt, 115); time.sleep(0.2)
+            set_angle(pwm_lc, 110); set_angle(pwm_rc, 110); time.sleep(0.2)
+            set_angle(pwm_lt, 65); set_angle(pwm_rt, 65); time.sleep(0.2)
+        elif "/auto" in endpoint: step_phase = 1
+        elif "/stop" in endpoint: step_phase = 0; stand_straight()
         elif "/backward" in endpoint:
-            print("🚶 Action: Backward Step")
-            set_angle(pwm_lc, 80); set_angle(pwm_rc, 80); time.sleep(0.15)
-            set_angle(pwm_rt, 75); set_angle(pwm_lt, 75); time.sleep(0.25)
-            set_angle(pwm_lc, 100); set_angle(pwm_rc, 100); time.sleep(0.15)
-            set_angle(pwm_lt, 105); set_angle(pwm_rt, 105); time.sleep(0.25)
-            
-        elif "/avoid" in endpoint:
-            print("👁️ Action: Ultrasonic Distance Scan")
-            distance = get_distance()
-            print("Scanned distance:", round(distance, 1), "cm")
-            
-            if distance < 15.0:
-                print("⚠️ Obstacle! Executing reverse pivot escape sequence...")
-                stand_straight(); time.sleep(0.15)
-                # Quick Step Back
-                set_angle(pwm_lc, 80); set_angle(pwm_rc, 80); time.sleep(0.15)
-                set_angle(pwm_rt, 75); set_angle(pwm_lt, 75); time.sleep(0.25)
-                # Clear left twist rotation
-                set_angle(pwm_lt, 75); set_angle(pwm_rt, 105); time.sleep(0.3)
-                stand_straight()
-            else:
-                # Walk forward 1 cycle safely if clear
-                set_angle(pwm_lc, 80); set_angle(pwm_rc, 80); time.sleep(0.15)
-                set_angle(pwm_rt, 105); set_angle(pwm_lt, 105); time.sleep(0.2)
-                
+            set_angle(pwm_lc, 110); set_angle(pwm_rc, 110); time.sleep(0.2)
+            set_angle(pwm_lt, 65); set_angle(pwm_rt, 65); time.sleep(0.2)
+            set_angle(pwm_lc, 70); set_angle(pwm_rc, 70); time.sleep(0.2)
+            set_angle(pwm_lt, 115); set_angle(pwm_rt, 115); time.sleep(0.2)
         elif "/dance" in endpoint:
-            print("🎶 Action: Dance Shimmy Shake")
-            # Step left/right bounce
-            set_angle(pwm_lc, 75); set_angle(pwm_rc, 75); time.sleep(0.15)
-            set_angle(pwm_lc, 105); set_angle(pwm_rc, 105); time.sleep(0.15)
-            # Twist hips
-            set_angle(pwm_lt, 110); set_angle(pwm_rt, 110); time.sleep(0.15)
-            set_angle(pwm_lt, 70); set_angle(pwm_rt, 70); time.sleep(0.15)
+            for i in range(3):
+                set_angle(pwm_lt, 60); set_angle(pwm_rt, 120); time.sleep(0.3)
+                set_angle(pwm_lt, 120); set_angle(pwm_rt, 60); time.sleep(0.3)
             stand_straight()
             
-        elif "/stop" in endpoint:
-            print("🛑 Action: Emergency Stop Protocol")
-            stand_straight()
-
-        # Compile and pipe the responsive webpage dashboard down to the browser client
-        response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + html_page
-        client.send(response.encode('utf-8'))
+        client.send('HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n' + html_page)
         client.close()
-        
-    except Exception as e:
-        if 'client' in locals():
-            client.close()
+    except: pass
+
+    # 2. Autonomous Obstacle Avoidance Loop
+    if step_phase > 0:
+        dist = get_distance()
+        if dist < 20.0:
+            stand_straight()
+        else:
+            if step_phase == 1: set_angle(pwm_lc, 70); set_angle(pwm_rc, 70); step_phase = 2
+            elif step_phase == 2: set_angle(pwm_rt, 115); set_angle(pwm_lt, 115); step_phase = 3
+            elif step_phase == 3: set_angle(pwm_lc, 110); set_angle(pwm_rc, 110); step_phase = 4
+            elif step_phase == 4: set_angle(pwm_lt, 65); set_angle(pwm_rt, 65); step_phase = 1
+            time.sleep(0.3)
