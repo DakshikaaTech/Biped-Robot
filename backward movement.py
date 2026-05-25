@@ -5,7 +5,7 @@ import time
 pwm_lt = PWM(Pin(5, Pin.OUT), freq=50)  # Left Thigh
 pwm_lc = PWM(Pin(16, Pin.OUT), freq=50) # Left Calf/Ankle
 pwm_rt = PWM(Pin(18, Pin.OUT), freq=50) # Right Thigh
-pwm_rc = PWM(Pin(17, Pin.OUT), freq=50) # Right Calf/Ankle
+pwm_rc = PWM(Pin(19, Pin.OUT), freq=50) # Right Calf/Ankle
 
 def set_angle(pwm_channel, angle):
     """Converts degrees (0-180) to hardware duty cycle."""
