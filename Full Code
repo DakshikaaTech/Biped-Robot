@@ -8,7 +8,7 @@ ap = network.WLAN(network.AP_IF)
 ap.active(True)
 ap.config(essid="Biped-Robot", password="password123")
 print("AP Created. Connect to: Biped-Robot")
-print("IP address: 192.168.4.1)
+print("IP address: 192.168.4.1")
 
 # --- 1. SERVO & HARDWARE CONFIGURATION ---
 pwm_lt = PWM(Pin(5, Pin.OUT), freq=50)
