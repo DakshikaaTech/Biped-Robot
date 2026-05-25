@@ -5,7 +5,7 @@ import time
 pwm_lt = PWM(Pin(5, Pin.OUT), freq=50)
 pwm_lc = PWM(Pin(16, Pin.OUT), freq=50)
 pwm_rt = PWM(Pin(18, Pin.OUT), freq=50)
-pwm_rc = PWM(Pin(17, Pin.OUT), freq=50)
+pwm_rc = PWM(Pin(19, Pin.OUT), freq=50)
 
 # 2. Setup Ultrasonic Pins
 trig = Pin(13, Pin.OUT)
