@@ -1,0 +1,168 @@
+import network
+import socket
+from machine import Pin, PWM
+import time
+
+# --- 0. CONNECT TO HOME WI-FI (STA MODE) ---
+# ⚠️ REPLACE THESE WITH YOUR EXACT HOME ROUTER DETAILS:
+WIFI_SSID = "REHAB F9"
+WIFI_PASSWORD = "52179426"
+
+sta = network.WLAN(network.STA_IF)
+sta.active(True)
+sta.connect(WIFI_SSID, WIFI_PASSWORD)
+
+print("Connecting to Wi-Fi...")
+# Wait for the chip to successfully log onto your home router
+max_wait = 20
+while max_wait > 0:
+    if sta.isconnected():
+        break
+    max_wait -= 1
+    print("Waiting for connection status...")
+    time.sleep(1)
+
+if not sta.isconnected():
+    print("❌ Connection Failed! Check your SSID name and password capitalizations.")
+else:
+    print("📡 Successfully Connected to Home Network!")
+    # This prints the specific local network IP address your router assigned to the robot
+    print("👉 YOUR ROBOT IP ADDRESS IS:", sta.ifconfig()[0])
+
+# --- 1. SERVO & HARDWARE CONFIGURATION ---
+pwm_lt = PWM(Pin(5, Pin.OUT), freq=50)  # Left Thigh
+pwm_lc = PWM(Pin(16, Pin.OUT), freq=50) # Left Calf/Ankle
+pwm_rt = PWM(Pin(18, Pin.OUT), freq=50) # Right Thigh
+pwm_rc = PWM(Pin(19, Pin.OUT), freq=50) # Right Calf/Ankle
+
+current_action = "stop"
+
+def set_angle(pwm_channel, angle):
+    duty = int(40 + (angle / 180) * 75)
+    pwm_channel.duty(duty)
+
+def stand_straight():
+    set_angle(pwm_lt, 90); set_angle(pwm_lc, 90)
+    set_angle(pwm_rt, 90); set_angle(pwm_rc, 90)
+
+# --- 2. USER INTERFACE CODE ---
+html_page = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biped Router Controller</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #f4f6f9; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; min-height: 100vh; padding: 20px;
+        }
+        .panel-container {
+            width: 100%; max-width: 400px; background-color: white;
+            padding: 30px 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center;
+        }
+        h1 { color: #2c3e50; font-size: 1.8rem; margin-bottom: 25px; font-weight: 600; }
+        .section-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #7f8c8d; margin-bottom: 15px; margin-top: 10px; }
+        .control-group { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .divider { height: 1px; background-color: #e0e0e0; width: 100%; margin: 15px 0; }
+        .btn {
+            color: white; border: none; padding: 15px 25px; font-size: 1.05rem; font-weight: bold;
+            border-radius: 12px; cursor: pointer; width: 85%; transition: all 0.2s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-manual { background-color: #3498db; }
+        .btn-manual:active { background-color: #2980b9; transform: scale(0.98); }
+        .btn-dance { background-color: #9b59b6; }
+        .btn-dance:active { background-color: #8e44ad; transform: scale(0.98); }
+        .btn-stop { background-color: #e74c3c; margin-top: 10px; }
+        .btn-stop:active { background-color: #c0392b; transform: scale(0.98); }
+    </style>
+</head>
+<body>
+    <div class="panel-container">
+        <h1>Mission Control</h1>
+        <div class="section-label">Steering</div>
+        <div class="control-group">
+            <button class="btn btn-manual" onclick="sendCmd('/forward')">▲ Forward Steps</button>
+            <button class="btn btn-manual" onclick="sendCmd('/backward')">▼ Backward Steps</button>
+        </div>
+        <div class="divider"></div>
+        <div class="section-label">Fun Functions</div>
+        <div class="control-group">
+            <button class="btn btn-dance" onclick="sendCmd('/dance')">🎶 Dance Grooves</button>
+        </div>
+        <div class="divider"></div>
+        <div class="control-group">
+            <button class="btn btn-stop" onclick="sendCmd('/stop')">🛑 Emergency Stop</button>
+        </div>
+    </div>
+    <script>
+        function sendCmd(route) {
+            fetch(route).catch(() => {});
+        }
+    </script>
+</body>
+</html>
+"""
+
+# --- 3. SOCKET SERVER INITIATION ---
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(('', 80))
+s.listen(5)
+s.setblocking(False)
+
+stand_straight()
+
+# --- 4. ENGINE ROUTING CORE ---
+while True:
+    try:
+        client, addr = s.accept()
+        request = client.recv(1024).decode('utf-8')
+        
+        first_line = request.split('\r\n')[0]
+        endpoint = first_line.split(' ')[1] if len(first_line.split(' ')) > 1 else ""
+        
+        if "/stop" in endpoint:
+            print("🛑 EMERGENCY STOP")
+            current_action = "stop"
+            stand_straight()
+        elif "/forward" in endpoint:
+            print("🚀 Target: Forward")
+            current_action = "forward"
+        elif "/backward" in endpoint:
+            print("🚶 Target: Backward")
+            current_action = "backward"
+        elif "/dance" in endpoint:
+            print("🎶 Target: Dance")
+            current_action = "dance"
+
+        response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + html_page
+        client.send(response.encode('utf-8'))
+        client.close()
+        
+    except OSError:
+        pass
+
+    # --- 5. INDEPENDENT STEPPING ENGINE ---
+    if current_action == "forward":
+        set_angle(pwm_lc, 80); set_angle(pwm_rc, 80); time.sleep(0.3)
+        set_angle(pwm_rt, 105); set_angle(pwm_lt, 105); time.sleep(0.35)
+        set_angle(pwm_lc, 100); set_angle(pwm_rc, 100); time.sleep(0.3)
+        set_angle(pwm_lt, 75); set_angle(pwm_rt, 75); time.sleep(0.35)
+        
+    elif current_action == "backward":
+        set_angle(pwm_lc, 80); set_angle(pwm_rc, 80); time.sleep(0.3)
+        set_angle(pwm_rt, 75); set_angle(pwm_lt, 75); time.sleep(0.35)
+        set_angle(pwm_lc, 100); set_angle(pwm_rc, 100); time.sleep(0.3)
+        set_angle(pwm_lt, 105); set_angle(pwm_rt, 105); time.sleep(0.35)
+        
+    elif current_action == "dance":
+        set_angle(pwm_lc, 75); set_angle(pwm_rc, 75); time.sleep(0.2)
+        set_angle(pwm_lc, 105); set_angle(pwm_rc, 105); time.sleep(0.2)
+        set_angle(pwm_lt, 110); set_angle(pwm_rt, 110); time.sleep(0.2)
+        set_angle(pwm_lt, 70); set_angle(pwm_rt, 70); time.sleep(0.2)
+
+    time.sleep(0.02)
