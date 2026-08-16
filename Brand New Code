@@ -120,17 +120,10 @@ while True:
                     set_angle(pwm_lt, 65); set_angle(pwm_rt, 65); step_phase = 1
 
     elif robot_mode == "BACKWARD":
-        if time.ticks_diff(current_time, last_step_time) > step_delay:
-            last_step_time = current_time
-            if step_phase == 1:
-                set_angle(pwm_lc, 110); set_angle(pwm_rc, 110); step_phase = 2
-            elif step_phase == 2:
-                set_angle(pwm_lt, 65); set_angle(pwm_rt, 65); step_phase = 3
-            elif step_phase == 3:
-                set_angle(pwm_lc, 70); set_angle(pwm_rc, 70); step_phase = 4
-            elif step_phase == 4:
-                set_angle(pwm_rt, 115); set_angle(pwm_lt, 115); step_phase = 1
-
+        set_angle(pwm_lc, 80); set_angle(pwm_rc, 80); time.sleep(0.3)
+        set_angle(pwm_rt, 75); set_angle(pwm_lt, 75); time.sleep(0.35)
+        set_angle(pwm_lc, 100); set_angle(pwm_rc, 100); time.sleep(0.3)
+        set_angle(pwm_lt, 105); set_angle(pwm_rt, 105); time.sleep(0.35)
     elif robot_mode == "DANCE":
         for _ in range(2):
             set_angle(pwm_lt, 60); set_angle(pwm_rt, 120); time.sleep(0.2)
