@@ -14,7 +14,7 @@ print("IP address: 192.168.4.1")
 pwm_lt = PWM(Pin(5, Pin.OUT), freq=50)
 pwm_lc = PWM(Pin(16, Pin.OUT), freq=50)
 pwm_rt = PWM(Pin(18, Pin.OUT), freq=50)
-pwm_rc = PWM(Pin(23, Pin.OUT), freq=50)
+pwm_rc = PWM(Pin(19, Pin.OUT), freq=50)
 trig = Pin(13, Pin.OUT)
 echo = Pin(14, Pin.IN)
 
@@ -107,17 +107,40 @@ while True:
         # If in auto-mode, check safety distance first
         if robot_mode == "AUTO" and get_distance() < 20.0:
             stand_straight()
+        elif robot_mode == "AUTO" and get_distance()>20.0:
+            set_angle(pwm_lc, 70)   
+            set_angle(pwm_rc, 70)   
+            time.sleep(0.3)
+        
+        # --- STEP 2: Step Right Foot Forward ---
+        # Right thigh swings forward, left thigh pushes backward
+            set_angle(pwm_rt, 110)  
+            set_angle(pwm_lt, 110)  
+            time.sleep(0.3)
+        
+        # --- STEP 3: Shift Weight Right & Lean ---
+        # Ankle angles invert to lean the torso over the right foot
+            set_angle(pwm_lc, 110)  
+            set_angle(pwm_rc, 110)  
+            time.sleep(0.3)
+        
+        # --- STEP 4: Step Left Foot Forward ---
+        # Left thigh swings forward, right thigh pushes backward
+            set_angle(pwm_lt, 70)   
+            set_angle(pwm_rt, 70)   
+            time.sleep(0.3)
+
         else:
             if time.ticks_diff(current_time, last_step_time) > step_delay:
                 last_step_time = current_time
                 if step_phase == 1:
-                    set_angle(pwm_lc, 70); set_angle(pwm_rc, 70); step_phase = 2
+                    set_angle(pwm_lc, 70); set_angle(pwm_rc, 70); time.sleep(0.3); step_phase = 2
                 elif step_phase == 2:
-                    set_angle(pwm_rt, 115); set_angle(pwm_lt, 115); step_phase = 3
+                    set_angle(pwm_rt, 110); set_angle(pwm_lt, 110); time.sleep(0.3); step_phase = 3
                 elif step_phase == 3:
-                    set_angle(pwm_lc, 110); set_angle(pwm_rc, 110); step_phase = 4
+                    set_angle(pwm_lc, 110); set_angle(pwm_rc, 110); time.sleep(0.3); step_phase = 4
                 elif step_phase == 4:
-                    set_angle(pwm_lt, 65); set_angle(pwm_rt, 65); step_phase = 1
+                    set_angle(pwm_lt, 70); set_angle(pwm_rt, 70); time.sleep(0.3); step_phase = 1
 
     elif robot_mode == "BACKWARD":
         set_angle(pwm_lc, 80); set_angle(pwm_rc, 80); time.sleep(0.3)
@@ -125,8 +148,10 @@ while True:
         set_angle(pwm_lc, 100); set_angle(pwm_rc, 100); time.sleep(0.3)
         set_angle(pwm_lt, 105); set_angle(pwm_rt, 105); time.sleep(0.35)
     elif robot_mode == "DANCE":
-        for _ in range(2):
+        for _ in range(15):
             set_angle(pwm_lt, 60); set_angle(pwm_rt, 120); time.sleep(0.2)
             set_angle(pwm_lt, 120); set_angle(pwm_rt, 60); time.sleep(0.2)
-        stand_straight()
-        robot_mode = "IDLE"
+            
+            
+        
+
